@@ -1,2 +1,5 @@
 # NutriScan
-### To run: npm start
+## To run:
+### run: npm install
+### run: npm run
+
