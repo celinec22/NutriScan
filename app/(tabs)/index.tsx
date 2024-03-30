@@ -1,14 +1,38 @@
-import { StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Text } from 'react-native';
 
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
 
 export default function SearchScreen() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showResults, setShowResults] = useState(false);
+
+  // updates the state
+  const handleSearch = (text: string): void => {
+    setSearchQuery(text);
+    // placeholder for showing results container
+    setShowResults(text.length > 0);
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Search</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
+     <Text style={styles.header}>Search</Text>
+      <View style={styles.searchBox}>
+      <Ionicons name="search" size={20} color="grey" />
+        <TextInput
+          style={styles.input}
+          onChangeText={handleSearch}
+          value={searchQuery}
+          placeholder="Search for any product"
+        />
+      </View>
+      {/* where  search results will be displayed */}
+      {showResults && (
+        <View style={styles.resultsContainer}>
+          {/* render  search results here */}
+        </View>
+      )}
     </View>
   );
 }
@@ -16,16 +40,37 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 30, 
   },
-  title: {
-    fontSize: 20,
+
+  header: { 
+    fontSize: 26,
     fontWeight: 'bold',
+    color: '#FFFFFF',
+    padding: 10,
+    paddingLeft: 20,
   },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
+
+  searchBox: {
+    flexDirection: 'row',
+    margin: 15,
+    padding: 10,
+    borderRadius: 25, 
+    backgroundColor: 'white',
+    alignItems: 'center',
+
+  },
+  input: {
+    flex: 1, // takes up remaining space in the search box
+    paddingHorizontal: 10,
+    fontSize: 18,
+  },
+  resultsContainer: {
+    marginTop: 20,
+    // styles for  results container
   },
 });
+
+
+
