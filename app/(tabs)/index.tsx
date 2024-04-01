@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, TextInput, View, ScrollView, Image } from 'react-native';
+import { StyleSheet, TextInput, View, ScrollView, Image, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from 'react-native';
 
@@ -9,23 +9,68 @@ interface Product {
   image_url: string; // Add the image URL property
   // Add more properties if needed
 }
-const SearchResultCard: React.FC<{ product: Product }> = ({ product }) => (
-  <View style={styles.card}>
-    <View style={styles.cardContent}>
-      {/* Info icon */}
-      <Image source={{ uri: product.image_url }} style={styles.productImage} />
-      <View style={styles.productInfo}>
-        <Text style={styles.productTitle}>{product.product_name}</Text>
-        {/* Add more product information here */}
+
+const SearchResultCard: React.FC<{ product: Product }> = ({ product }) => {
+  // Function to calculate the nutrient score
+  const calculateNutrientScore = (product: Product): string => {
+    // Calculate the nutrient score based on product properties
+    // Return a string representing the score ('good', 'excellent', 'bad', 'poor')
+    // Example calculation logic:
+    // If the product has low sugar, low sodium, and high fiber, return 'excellent'
+    // If the product has moderate sugar, moderate sodium, and some fiber, return 'good'
+    // If the product has high sugar, high sodium, and low fiber, return 'bad'
+    // If the product has very high sugar, very high sodium, and no fiber, return 'poor'
+    return 'poor'; // Placeholder return value
+  };
+
+  const nutrientScore = calculateNutrientScore(product);
+  const colorScheme = useColorScheme(); // Get the current color scheme
+
+  // Function to determine circle color based on nutrient score
+  const getCircleColor = (nutrientScore: string): string => {
+    switch (nutrientScore) {
+      case 'excellent':
+        return '#5bb450'; // Green for excellent
+      case 'good':
+        return '#ffd700'; // Yellow for good
+      case 'poor':
+        return '#ff6347'; // Red for poor
+      case 'bad':
+        return '#8b0000'; // Dark red for bad
+      default:
+        return '#ccc'; // Default color
+    }
+  };
+
+  return (
+    <View style={[styles.card, { 
+      backgroundColor: colorScheme === 'dark' ? '#333333' : 'white',
+      borderColor: colorScheme === 'dark' ? '#555555' : '#ccc', // Adjust border color based on color scheme
+  }]}>
+      <View style={styles.cardContent}>
+        {/* Image */}
+        <Image source={{ uri: product.image_url }} style={styles.productImage} />
+        {/* Info Container */}
+        <View style={styles.infoContainer}>
+          {/* Title */}
+          <Text style={[styles.productTitle, { color: colorScheme === 'dark' ? 'white' : 'black' }]}>{product.product_name}</Text>
+          {/* Circle and Nutrient Score Container */}
+          <View style={styles.circleContainer}>
+            <View style={[styles.circle, { backgroundColor: getCircleColor(nutrientScore) }]} />
+            <Text style={[styles.nutrientScoreText, { color: colorScheme === 'dark' ? 'grey' : 'black' }]}>{nutrientScore.toUpperCase()}</Text>
+          </View>
+        </View>
+        {/* Icon */}
+        <Ionicons name="information-circle" size={24} color="grey" style={styles.infoIcon} />
       </View>
-      <Ionicons name="information-circle" size={24} color="grey" style={styles.infoIcon} />
     </View>
-  </View>
-);
+  );
+};
 
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const colorScheme = useColorScheme(); // Get the current color scheme
 
   // Function to handle search
   const handleSearch = async (text: string) => {
@@ -52,10 +97,10 @@ export default function SearchScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Search</Text>
-      <View style={styles.searchBox}>
+      <View style={[styles.searchBox, {backgroundColor: colorScheme === 'dark' ? '#333333' : 'white'}]}>
         <Ionicons name="search" size={20} color="grey" />
         <TextInput
-          style={styles.input}
+          style={[styles.input, { color: colorScheme === 'dark' ? 'white' : 'black' }]}
           onChangeText={handleSearch}
           value={searchQuery}
           placeholder="Search for any product"
@@ -102,7 +147,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   card: {
-    backgroundColor: 'white',
     padding: 10,
     marginVertical: 5,
     marginHorizontal: 10,
@@ -119,21 +163,43 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#5bb450', 
   },
-
   cardContent: {
     flexDirection: 'row',
   },
   productInfo: {
     flex: 1,
-    marginLeft: 10,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   productTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    marginLeft: 10,
+    paddingTop: 10,
+  },
+  nutrientScoreText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 5,
   },
   infoIcon: {
     alignSelf: 'center',
     marginRight: 10,
+  },
+  circle: {
+    width: 15,
+    height: 15,
+    borderRadius: 10,
+  },
+  infoContainer: {
+    flex: 1,
+    flexDirection: 'column',
+    marginLeft: 10,
+  },
+  circleContainer: {
+    paddingLeft: 10,
+    paddingTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });
