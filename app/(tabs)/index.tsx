@@ -9,20 +9,19 @@ interface Product {
   image_url: string; // Add the image URL property
   // Add more properties if needed
 }
-
-// Card Component to display each search result
 const SearchResultCard: React.FC<{ product: Product }> = ({ product }) => (
   <View style={styles.card}>
     <View style={styles.cardContent}>
+      {/* Info icon */}
       <Image source={{ uri: product.image_url }} style={styles.productImage} />
       <View style={styles.productInfo}>
         <Text style={styles.productTitle}>{product.product_name}</Text>
         {/* Add more product information here */}
       </View>
+      <Ionicons name="information-circle" size={24} color="grey" style={styles.infoIcon} />
     </View>
   </View>
 );
-
 
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -116,6 +115,9 @@ const styles = StyleSheet.create({
     height: 100,
     marginTop: 10,
     alignSelf: 'center',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#5bb450', 
   },
 
   cardContent: {
@@ -129,5 +131,9 @@ const styles = StyleSheet.create({
   productTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  infoIcon: {
+    alignSelf: 'center',
+    marginRight: 10,
   },
 });
