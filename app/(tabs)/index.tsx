@@ -1,25 +1,19 @@
-import React, { useState } from 'react';
-import { StyleSheet, TextInput, View, ScrollView, Image, useColorScheme } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, TextInput, View, ScrollView, Image, useColorScheme, TouchableOpacity, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Text } from 'react-native';
+import BarcodeModal from '@/components/foodmodal';
 
 // Define an interface for the product object
 interface Product {
   product_name: string;
-  image_url: string; // Add the image URL property
-  // Add more properties if needed
+  image_url: string;
+  code: string; // A unique identifier for the product
 }
 
-const SearchResultCard: React.FC<{ product: Product }> = ({ product }) => {
+// Component for rendering each search result card
+const SearchResultCard: React.FC<{ product: Product; onPress: () => void }> = ({ product, onPress }) => {
   // Function to calculate the nutrient score
   const calculateNutrientScore = (product: Product): string => {
-    // Calculate the nutrient score based on product properties
-    // Return a string representing the score ('good', 'excellent', 'bad', 'poor')
-    // Example calculation logic:
-    // If the product has low sugar, low sodium, and high fiber, return 'excellent'
-    // If the product has moderate sugar, moderate sodium, and some fiber, return 'good'
-    // If the product has high sugar, high sodium, and low fiber, return 'bad'
-    // If the product has very high sugar, very high sodium, and no fiber, return 'poor'
     return 'poor'; // Placeholder return value
   };
 
@@ -43,33 +37,38 @@ const SearchResultCard: React.FC<{ product: Product }> = ({ product }) => {
   };
 
   return (
-    <View style={[styles.card, { 
-      backgroundColor: colorScheme === 'dark' ? '#333333' : 'white',
-      borderColor: colorScheme === 'dark' ? '#555555' : '#ccc', // Adjust border color based on color scheme
-  }]}>
-      <View style={styles.cardContent}>
-        {/* Image */}
-        <Image source={{ uri: product.image_url }} style={styles.productImage} />
-        {/* Info Container */}
-        <View style={styles.infoContainer}>
-          {/* Title */}
-          <Text style={[styles.productTitle, { color: colorScheme === 'dark' ? 'white' : 'black' }]}>{product.product_name}</Text>
-          {/* Circle and Nutrient Score Container */}
-          <View style={styles.circleContainer}>
-            <View style={[styles.circle, { backgroundColor: getCircleColor(nutrientScore) }]} />
-            <Text style={[styles.nutrientScoreText, { color: colorScheme === 'dark' ? 'grey' : 'black' }]}>{nutrientScore.toUpperCase()}</Text>
+    <TouchableOpacity onPress={onPress}>
+      <View style={[styles.card, { 
+        backgroundColor: colorScheme === 'dark' ? '#333333' : 'white',
+        borderColor: colorScheme === 'dark' ? '#555555' : '#ccc', // Adjust border color based on color scheme
+      }]}>
+        <View style={styles.cardContent}>
+          {/* Image */}
+          <Image source={{ uri: product.image_url }} style={styles.productImage} />
+          {/* Info Container */}
+          <View style={styles.infoContainer}>
+            {/* Title */}
+            <Text style={[styles.productTitle, { color: colorScheme === 'dark' ? 'white' : 'black' }]}>{product.product_name}</Text>
+            {/* Circle and Nutrient Score Container */}
+            <View style={styles.circleContainer}>
+              <View style={[styles.circle, { backgroundColor: getCircleColor(nutrientScore) }]} />
+              <Text style={[styles.nutrientScoreText, { color: colorScheme === 'dark' ? 'grey' : 'black' }]}>{nutrientScore.toUpperCase()}</Text>
+            </View>
           </View>
+          {/* Icon */}
+          <Ionicons name="information-circle" size={24} color="grey" style={styles.infoIcon} />
         </View>
-        {/* Icon */}
-        <Ionicons name="information-circle" size={24} color="grey" style={styles.infoIcon} />
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null); // State to track selected product
+  const [modalVisible, setModalVisible] = useState<boolean>(false); // State to control the visibility of the modal
+  const [scannedData, setScannedData] = useState<{ type: string; data: string } | null>(null); // State to hold the scanned data
   const colorScheme = useColorScheme(); // Get the current color scheme
 
   // Function to handle search
@@ -77,6 +76,7 @@ export default function SearchScreen() {
     setSearchQuery(text);
     if (text.length > 0) {
       try {
+        // Fetch search results from the Open Food Facts API
         const response = await fetch(
           `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${text}&page_size=10&json=true`
         );
@@ -84,19 +84,47 @@ export default function SearchScreen() {
           throw new Error('Failed to fetch data');
         }
         const data = await response.json();
-        setSearchResults(data.products);
+        setSearchResults(data.products); // Update search results state
       } catch (error) {
         console.error('Error fetching search results:', error);
-        setSearchResults([]);
+        setSearchResults([]); // Reset search results state in case of error
       }
     } else {
-      setSearchResults([]);
+      setSearchResults([]); // Reset search results state if search query is empty
     }
+  };
+
+  // Function to handle opening the modal
+  const handleOpenModal = async (product: Product) => {
+    setSelectedProduct(product); // Set selected product
+    try {
+      // Fetch detailed product information from the Open Food Facts API using the product code
+      const response = await fetch(
+        `https://world.openfoodfacts.org/api/v0/product/${product.code}.json`
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch product details');
+      }
+      const data = await response.json();
+      setScannedData({ type: 'barcode', data: product.code }); // Set scanned data to barcode
+    } catch (error) {
+      console.error('Error fetching product details:', error);
+      setScannedData(null); // Reset scanned data if there's an error
+    }
+    setModalVisible(true); // Open the modal
+  };
+
+  // Function to close the modal
+  const handleCloseModal = () => {
+    setSelectedProduct(null);
+    setModalVisible(false); // Close the modal
   };
 
   return (
     <View style={styles.container}>
+      {/* Search header */}
       <Text style={styles.header}>Search</Text>
+      {/* Search input */}
       <View style={[styles.searchBox, {backgroundColor: colorScheme === 'dark' ? '#333333' : 'white'}]}>
         <Ionicons name="search" size={20} color="grey" />
         <TextInput
@@ -106,17 +134,27 @@ export default function SearchScreen() {
           placeholder="Search for any product"
         />
       </View>
+      {/* Render search results */}
       {searchResults.length > 0 && (
         <ScrollView style={styles.resultsContainer}>
           {searchResults.map((product, index) => (
-            <SearchResultCard key={index} product={product} />
+            <SearchResultCard key={index} product={product} onPress={() => handleOpenModal(product)} />
           ))}
         </ScrollView>
+      )}
+      {/* Render barcode modal if a product is selected */}
+      {selectedProduct && modalVisible && (
+        <BarcodeModal 
+          visible={modalVisible}
+          scannedData={scannedData}
+          onClose={handleCloseModal}
+        />
       )}
     </View>
   );
 }
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
