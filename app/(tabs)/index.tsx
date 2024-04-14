@@ -1,61 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, TextInput, View, ScrollView, Image, useColorScheme, TouchableOpacity, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import BarcodeModal from '@/components/foodmodal';
+import calculateScoreWithCategory from '@/components/NutriScore'; // Importing a function to calculate the nutrient score
+import BarcodeModal from '@/components/foodmodal'; // Importing a modal component
 
-// Define an interface for the product object
+// Defining the structure of a product
 interface Product {
   product_name: string;
   image_url: string;
-  code: string; // A unique identifier for the product
+  code: string;
 }
 
-// Component for rendering each search result card
+// Component for displaying each search result
 const SearchResultCard: React.FC<{ product: Product; onPress: () => void }> = ({ product, onPress }) => {
-  // Function to calculate the nutrient score
-  const calculateNutrientScore = (product: Product): string => {
-    return 'poor'; // Placeholder return value
-  };
+  // State to hold the nutrient score of the product
+  const [nutrientScore, setNutrientScore] = useState<string>('');
 
-  const nutrientScore = calculateNutrientScore(product);
-  const colorScheme = useColorScheme(); // Get the current color scheme
-
-  // Function to determine circle color based on nutrient score
-  const getCircleColor = (nutrientScore: string): string => {
-    switch (nutrientScore) {
-      case 'excellent':
-        return '#5bb450'; // Green for excellent
-      case 'good':
-        return '#ffd700'; // Yellow for good
-      case 'poor':
-        return '#ff6347'; // Red for poor
-      case 'bad':
-        return '#8b0000'; // Dark red for bad
-      default:
-        return '#ccc'; // Default color
+  // Function to calculate the nutrient score when the component mounts or when the product changes
+  const calculateNutrientScore = async (product: Product) => {
+    try {
+      // Call the function to calculate the nutrient score
+      const score = await calculateScoreWithCategory(product.code);
+      // Set the nutrient score in the state
+      setNutrientScore(score);
+    } catch (error) {
+      console.error('Error calculating nutrient score:', error);
+      // Set the nutrient score to 'Unknown' in case of an error
+      setNutrientScore('Unknown');
     }
   };
 
+  // Effect to trigger the calculation of the nutrient score when the component mounts or when the product changes
+  useEffect(() => {
+    calculateNutrientScore(product);
+  }, [product]);
+
+  // Function to determine the color of the circle based on the nutrient score
+  const getCircleColor = (nutrientScore: string): string => {
+    switch (nutrientScore) {
+      case 'Excellent':
+        return '#5bb450'; // Green color for Excellent
+      case 'Good':
+        return '#ffd700'; // Yellow color for Good
+      case 'Average':
+        return '#ccc'; // Grey color for Average
+      case 'Poor':
+        return '#ff6347'; // Red color for Poor
+      case 'Bad':
+        return '#8b0000'; // Dark red color for Bad
+      default:
+        return '#ccc'; // Default to grey for unknown score
+    }
+  };
+
+  // Return the UI for displaying a search result
   return (
     <TouchableOpacity onPress={onPress}>
-      <View style={[styles.card, { 
-        backgroundColor: colorScheme === 'dark' ? '#333333' : 'white',
-        borderColor: colorScheme === 'dark' ? '#555555' : '#ccc', // Adjust border color based on color scheme
-      }]}>
+      <View style={styles.card}>
         <View style={styles.cardContent}>
-          {/* Image */}
           <Image source={{ uri: product.image_url }} style={styles.productImage} />
-          {/* Info Container */}
           <View style={styles.infoContainer}>
-            {/* Title */}
-            <Text style={[styles.productTitle, { color: colorScheme === 'dark' ? 'white' : 'black' }]}>{product.product_name}</Text>
-            {/* Circle and Nutrient Score Container */}
+            <Text style={styles.productTitle}>{product.product_name}</Text>
             <View style={styles.circleContainer}>
               <View style={[styles.circle, { backgroundColor: getCircleColor(nutrientScore) }]} />
-              <Text style={[styles.nutrientScoreText, { color: colorScheme === 'dark' ? 'grey' : 'black' }]}>{nutrientScore.toUpperCase()}</Text>
+              <Text style={styles.nutrientScoreText}>{nutrientScore.toUpperCase()}</Text>
             </View>
           </View>
-          {/* Icon */}
           <Ionicons name="information-circle" size={24} color="grey" style={styles.infoIcon} />
         </View>
       </View>
@@ -63,20 +73,22 @@ const SearchResultCard: React.FC<{ product: Product; onPress: () => void }> = ({
   );
 };
 
-export default function SearchScreen() {
+// Component for the search screen
+const SearchScreen = () => {
+  // State to hold the search query, search results, selected product, modal visibility, and scanned data
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null); // State to track selected product
-  const [modalVisible, setModalVisible] = useState<boolean>(false); // State to control the visibility of the modal
-  const [scannedData, setScannedData] = useState<{ type: string; data: string } | null>(null); // State to hold the scanned data
-  const colorScheme = useColorScheme(); // Get the current color scheme
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [scannedData, setScannedData] = useState<{ type: string; data: string } | null>(null);
+  const colorScheme = useColorScheme(); // Hook to get the color scheme of the device
 
-  // Function to handle search
+  // Function to handle the search query
   const handleSearch = async (text: string) => {
     setSearchQuery(text);
     if (text.length > 0) {
       try {
-        // Fetch search results from the Open Food Facts API
+        // Fetching search results from an API based on the search query
         const response = await fetch(
           `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${text}&page_size=10&json=true`
         );
@@ -84,21 +96,25 @@ export default function SearchScreen() {
           throw new Error('Failed to fetch data');
         }
         const data = await response.json();
-        setSearchResults(data.products); // Update search results state
+        // Filtering search results based on the product name containing the search query
+        const filteredResults = data.products.filter((product: Product) =>
+          product.product_name.toLowerCase().includes(text.toLowerCase())
+        );
+        setSearchResults(filteredResults);
       } catch (error) {
         console.error('Error fetching search results:', error);
-        setSearchResults([]); // Reset search results state in case of error
+        setSearchResults([]);
       }
     } else {
-      setSearchResults([]); // Reset search results state if search query is empty
+      setSearchResults([]);
     }
   };
 
-  // Function to handle opening the modal
+  // Function to handle opening the modal for a selected product
   const handleOpenModal = async (product: Product) => {
-    setSelectedProduct(product); // Set selected product
+    setSelectedProduct(product);
     try {
-      // Fetch detailed product information from the Open Food Facts API using the product code
+      // Fetching additional details of the selected product from an API
       const response = await fetch(
         `https://world.openfoodfacts.org/api/v0/product/${product.code}.json`
       );
@@ -106,35 +122,34 @@ export default function SearchScreen() {
         throw new Error('Failed to fetch product details');
       }
       const data = await response.json();
-      setScannedData({ type: 'barcode', data: product.code }); // Set scanned data to barcode
+      setScannedData({ type: 'barcode', data: product.code });
     } catch (error) {
       console.error('Error fetching product details:', error);
-      setScannedData(null); // Reset scanned data if there's an error
+      setScannedData(null);
     }
-    setModalVisible(true); // Open the modal
+    setModalVisible(true); // Setting the modal visibility to true
   };
 
-  // Function to close the modal
+  // Function to handle closing the modal
   const handleCloseModal = () => {
     setSelectedProduct(null);
-    setModalVisible(false); // Close the modal
+    setModalVisible(false); // Setting the modal visibility to false
   };
 
+  // Return the UI for the search screen
   return (
     <View style={styles.container}>
-      {/* Search header */}
       <Text style={styles.header}>Search</Text>
-      {/* Search input */}
-      <View style={[styles.searchBox, {backgroundColor: colorScheme === 'dark' ? '#333333' : 'white'}]}>
+      <View style={[styles.searchBox, { backgroundColor: colorScheme === 'dark' ? '#333333' : 'white' }]}>
         <Ionicons name="search" size={20} color="grey" />
         <TextInput
           style={[styles.input, { color: colorScheme === 'dark' ? 'white' : 'black' }]}
-          onChangeText={handleSearch}
+          onChangeText={setSearchQuery}
+          onSubmitEditing={() => handleSearch(searchQuery)} // Triggering search on submit
           value={searchQuery}
           placeholder="Search for any product"
         />
       </View>
-      {/* Render search results */}
       {searchResults.length > 0 && (
         <ScrollView style={styles.resultsContainer}>
           {searchResults.map((product, index) => (
@@ -142,7 +157,6 @@ export default function SearchScreen() {
           ))}
         </ScrollView>
       )}
-      {/* Render barcode modal if a product is selected */}
       {selectedProduct && modalVisible && (
         <BarcodeModal 
           visible={modalVisible}
@@ -152,7 +166,7 @@ export default function SearchScreen() {
       )}
     </View>
   );
-}
+};
 
 // Styles
 const styles = StyleSheet.create({
@@ -241,3 +255,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
+
+export default SearchScreen;
