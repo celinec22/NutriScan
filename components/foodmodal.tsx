@@ -36,6 +36,8 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
         const ingredients = data.product.ingredients || [];
         const additives = data.product.additives_tags || [];
         const nutrientData: Record<string, { serving: number; level: string }> = {};
+        
+        
      
         
         const additiveDetails = await fetchAdditiveDetails(additives);
@@ -62,8 +64,15 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
         console.log("Ingredients:", ingredientNames);
         console.log("Additive Names:", additiveNames);
         console.log("Nutrient Data:", nutrientData);
+
     
-     
+        const score = calculateScore(nutrientData, additives)
+        const catagory= categorizeScore(score)
+        
+        console.log("Score is:" ,score)
+        console.log("catagory:" ,catagory)
+
+       
         setProductData({ title, image, ingredients: ingredientNames, additives: additiveDetails, nutrientData });
 
 
@@ -140,6 +149,126 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
       return [];
     }
 };
+
+
+
+
+const calculateScore = (nutrientData: Record<string, { serving: number; level: string }>, additives: any[]): number => {
+  let score = 0;
+ 
+
+  
+   additives.forEach(additiveCode => {
+    const id = additiveCode.replace('en:', '');  
+    switch (id) {
+      case 'e102': // Tartrazine
+      case 'e110': // Sunset Yellow FCF
+      case 'e129': // Allura Red AC
+      case 'e951': // Aspartame
+        score -= 2;
+        break;
+      case 'e120': // Carmine
+      case 'e122': // Azorubine
+      case 'e211': // Sodium benzoate
+      case 'e220': // Sulfur dioxide
+      case 'e250': // Sodium nitrite
+      case 'e621': // Monosodium glutamate
+        score -= 1;
+        break;
+      default:
+        break;  // Unknown or benign additives don't change the score
+    }
+  });
+
+
+
+
+  // Iterate through each nutrient and apply logic based on its level
+  Object.entries(nutrientData).forEach(([key, nutrient]) => {
+    switch (key) {
+      case "proteins":  // Handling proteins specifically
+        switch (nutrient.level) {
+          case 'low':
+            score -= 1;  // Low protein is negative
+            break;
+          case 'high':
+            score += 2;  // High protein is good, more points
+            break;
+          default:
+            break;  // Normal protein doesn't change the score
+        }
+        break;
+      case "sugars":  // Handling sugars
+        switch (nutrient.level) {
+          case 'low':
+            score += 1;  // Low sugar is positive
+            break;
+          case 'high':
+            score -= 2;  // High sugar is worse, subtract more points
+            break;
+          default:
+            break;
+        }
+        break;
+      case "sodium":  // Handling sodium
+        switch (nutrient.level) {
+          case 'low':
+            score += 1;  // Low sodium is positive
+            break;
+          case 'high':
+            score -= 2;  // High sodium is negative
+            break;
+          default:
+            break;
+        }
+        break;
+      case "saturated-fat":  // Handling saturated fat
+        switch (nutrient.level) {
+          case 'low':
+            score += 1;  // Low saturated fat is positive
+            break;
+          case 'high':
+            score -= 2;  // High saturated fat is negative
+            break;
+          default:
+            break;
+        }
+        break;
+      case "energy-kcal":  
+        switch (nutrient.level) {
+          case 'low':
+            score += 1;  
+            break;
+          case 'high':
+            score -= 1;  
+          default:
+            break;
+        }
+        break;
+      default:
+        
+        break;
+    }
+  });
+
+  return score;
+};
+
+
+const categorizeScore = (score: number): string => {
+  if (score >= 10) {
+    return 'Excellent';
+  } else if (score >= 5) {
+    return 'Good';
+  } else if (score >= 0) {
+    return 'Average';
+  } else if (score >= -5) {
+    return 'Poor';
+  } else {
+    return 'Bad';
+  }
+};
+
 
 
   return (
