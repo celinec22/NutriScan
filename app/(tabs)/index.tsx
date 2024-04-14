@@ -9,6 +9,7 @@ interface Product {
   product_name: string;
   image_url: string;
   code: string;
+  nutrient_grade: string;
 }
 
 // Component for displaying each search result
@@ -84,31 +85,56 @@ const SearchScreen = () => {
   const colorScheme = useColorScheme(); // Hook to get the color scheme of the device
 
   // Function to handle the search query
-  const handleSearch = async (text: string) => {
-    setSearchQuery(text);
-    if (text.length > 0) {
-      try {
-        // Fetching search results from an API based on the search query
-        const response = await fetch(
-          `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${text}&page_size=10&json=true`
-        );
-        if (!response.ok) {
-          throw new Error('Failed to fetch data');
-        }
-        const data = await response.json();
-        // Filtering search results based on the product name containing the search query
-        const filteredResults = data.products.filter((product: Product) =>
-          product.product_name.toLowerCase().includes(text.toLowerCase())
-        );
-        setSearchResults(filteredResults);
-      } catch (error) {
-        console.error('Error fetching search results:', error);
-        setSearchResults([]);
+  // Function to handle the search query
+const handleSearch = async (text: string) => {
+  const sanitizedText = encodeURIComponent(text.trim()); // Trim and encode the search query
+
+  setSearchQuery(text);
+  if (sanitizedText.length > 0) {
+    try {
+      // Fetching search results from an API based on the sanitized search query
+      const response = await fetch(
+        `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${sanitizedText}&page_size=10&json=true`
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch data');
       }
-    } else {
+      const data = await response.json();
+      
+      // Mapping over the fetched products and fetching additional data for each product
+      const fetchedResults = await Promise.all(data.products.map(async (product: Product) => {
+        try {
+          // Fetch additional details of each product
+          const productResponse = await fetch(`https://world.openfoodfacts.org/api/v0/product/${product.code}.json`);
+          if (!productResponse.ok) {
+            throw new Error('Failed to fetch product details');
+          }
+          const productData = await productResponse.json();
+          // Extracting nutrient grade from the additional data
+          const nutrient_grade = productData.product.nutrition_grades || 'Unknown';
+          // Returning the product with nutrient grade
+          return { ...product, nutrient_grade };
+        } catch (error) {
+          console.error(`Error fetching additional details for product ${product.code}:`, error);
+          return { ...product, nutrient_grade: 'Unknown' };
+        }
+      }));
+      
+      // Filtering search results based on the product name containing the search query
+      const filteredResults = fetchedResults.filter((product: Product) =>
+        product.product_name.toLowerCase().includes(text.toLowerCase())
+      );
+      
+      // Updating the search results state
+      setSearchResults(filteredResults);
+    } catch (error) {
+      console.error('Error fetching search results:', error);
       setSearchResults([]);
     }
-  };
+  } else {
+    setSearchResults([]);
+  }
+};
 
   // Function to handle opening the modal for a selected product
   const handleOpenModal = async (product: Product) => {
