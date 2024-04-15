@@ -8,6 +8,20 @@ interface Props {
   onClose: () => void;
 }
 
+export const getFavoritesList = async (): Promise<string[] | null> => {
+  try {
+    const favs = await AsyncStorage.getItem('favsList');
+    if (favs) {
+      return JSON.parse(favs);
+    } else {
+      return [];
+    }
+  } catch (error) {
+    console.error('Error loading favorites list:', error);
+    return null;
+  }
+};
+
 const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
   const [productData, setProductData] = useState<{
     title: string;
