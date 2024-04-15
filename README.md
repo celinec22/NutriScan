@@ -2,7 +2,8 @@
 
 This document provides guidelines on how to contribute to the project using Visual Studio Code (VS Code). Follow these steps to clone the repository, create feature or bug-fix branches, commit your changes, and create a pull request.
 
-## To run:
+## How to Deploy:
+### Make sure Node is installed
 ### run: npm install
 ### run: npm start
 
@@ -15,6 +16,7 @@ This document provides guidelines on how to contribute to the project using Visu
 4. Enter the repository URL: `https://github.com/celinec22/NutriScan.git`
 5. Choose a local directory where you want to clone the repository and click `Select Repository Location`.
 6. Once cloned, a prompt will ask if you want to open the cloned repository. Click `Open`.
+7. Now refer to `How to Deploy` in order to run the app.
 
 ## Creating Branches
 
