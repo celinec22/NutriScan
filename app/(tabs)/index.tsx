@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TextInput, View, ScrollView, Image, useColorScheme, TouchableOpacity, Text } from 'react-native';
+import { StyleSheet, TextInput, View, ScrollView, Image, useColorScheme, TouchableOpacity, Text, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BarcodeModal from '@/components/foodmodal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Define an interface for the product object
 interface Product {
@@ -113,7 +114,56 @@ export default function SearchScreen() {
     }
     setModalVisible(true); // Open the modal
   };
-
+  
+  // Function to save favorites to AsyncStorage
+  const saveFavorites = async (newFavorites: Product[]) => {
+    try {
+      await AsyncStorage.setItem('userFavorites', JSON.stringify(newFavorites));
+    } catch (error) {
+      console.error('Error saving favorites:', error);
+      }
+    };
+  
+    // Function to handle adding a favorite
+    const handleAddFavorite = async (product: Product) => {
+      if (!product) {
+        Alert.alert('Error', 'No product selected.');
+        return;
+      }
+  
+      // Load current favorites from AsyncStorage
+      let currentFavorites: Product[] = [];
+      try {
+        const storedFavorites = await AsyncStorage.getItem('userFavorites');
+        if (storedFavorites !== null) {
+          currentFavorites = JSON.parse(storedFavorites);
+        }
+      } catch (error) {
+        console.error('Error loading favorites:', error);
+      }
+  
+      // Check if the scanned food item is already a favorite
+      if (currentFavorites.some((fav) => fav.code === product.code)) {
+        Alert.alert('Info', 'This food item is already in favorites.');
+        return;
+      }
+  
+      // Add the scanned food item to favorites and save to AsyncStorage
+      const newFavorites = [...currentFavorites, product];
+      await saveFavorites(newFavorites);
+      Alert.alert('Success', `${product.product_name} added to favorites.`);
+    };
+  
+  
+    // Function to simulate scanning a food item
+    const scanFoodItem = () => {
+      // For demonstration purposes, return a hardcoded product
+      return {
+        product_name: 'Scanned Food Item',
+        image_url: 'https://via.placeholder.com/150', // Placeholder image URL
+        code: '1234567890', // Placeholder code
+      };
+    };
   // Function to close the modal
   const handleCloseModal = () => {
     setSelectedProduct(null);
