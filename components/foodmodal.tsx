@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, ScrollView, Text, Button, TouchableOpacity, StyleSheet, Modal, Image } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Props {
   visible: boolean;
