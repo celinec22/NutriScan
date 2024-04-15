@@ -20,15 +20,80 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
 
   const [category, setCategory] = useState<string>(''); // Declare category state variable
   const [isFavorite, setIsFavorite] = useState<boolean>(false); // State variable for favorite status
+  const [favsList, setFavsList] = useState<string[]>([]); // State variable for favorites list
 
   useEffect(() => {
     if (scannedData) {
       fetchProductData(scannedData.data);
+      // Load favorite status from AsyncStorage
+      loadFavoriteStatus(scannedData.data);
     }
   }, [scannedData]);
 
-  const handleFavoriteToggle = () => {
+  useEffect(() => {
+    // Load favorites list from AsyncStorage
+    loadFavoritesList();
+  }, []);
+
+  const loadFavoritesList = async () => {
+  try {
+    const favs = await AsyncStorage.getItem('favsList');
+    if (favs) {
+      const favsList = JSON.parse(favs);
+      setFavsList(favsList);
+      console.log('Favorites List:', favsList); // Log the favorites list
+    }
+  } catch (error) {
+    console.error('Error loading favorites list:', error);
+  }
+};
+
+  const saveFavoritesList = async (list: string[]) => {
+    try {
+      await AsyncStorage.setItem('favsList', JSON.stringify(list));
+    } catch (error) {
+      console.error('Error saving favorites list:', error);
+    }
+  };
+
+  const loadFavoriteStatus = async (barcode: string) => {
+    try {
+      const favoriteStatus = await AsyncStorage.getItem(`favorite_${barcode}`);
+      setIsFavorite(favoriteStatus === 'true');
+    } catch (error) {
+      console.error('Error loading favorite status:', error);
+    }
+  };
+
+  const handleFavoriteToggle = async () => {
+    const updatedFavsList = [...favsList];
+    if (isFavorite) {
+      // Remove barcode from favorites list
+      const index = updatedFavsList.indexOf(scannedData?.data || '');
+      if (index !== -1) {
+        updatedFavsList.splice(index, 1);
+        setFavsList(updatedFavsList);
+        saveFavoritesList(updatedFavsList);
+      }
+    } else {
+      // Add barcode to favorites list
+      if (!updatedFavsList.includes(scannedData?.data || '')) {
+        updatedFavsList.push(scannedData?.data || '');
+        setFavsList(updatedFavsList);
+        saveFavoritesList(updatedFavsList);
+        
+      }
+      console.log('Favorites List:', updatedFavsList);
+    }
     setIsFavorite(!isFavorite); // Toggle favorite status
+    if (scannedData) {
+      // Save favorite status to AsyncStorage
+      try {
+        await AsyncStorage.setItem(`favorite_${scannedData.data}`, (!isFavorite).toString());
+      } catch (error) {
+        console.error('Error saving favorite status:', error);
+      }
+    }
   };
 
   const fetchProductData = async (barcode: string) => {
