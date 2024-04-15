@@ -43,7 +43,7 @@ export default function ModalScreen() {
       />
       <AccordionItem
          title="Favorites List"
-        content="Create a list of your preferred items for quick access to their nutritional information, and review your search history to track your previously searched or scanned products."
+        content="Create a list of your preferred items for quick access to their nutritional information."
       />
 
       <SectionHeader title="General Problems" />
@@ -53,7 +53,7 @@ export default function ModalScreen() {
       />
       <AccordionItem
         title="The product has no barcode"
-        content="For products without a barcode, use the search feature to find the item manually. You can look up a product by name or browse similar items to get an estimated nutritional profile."
+        content="For products without a barcode, use the search feature to find the item manually."
       />
       
       <SectionHeader title="About NutriScan" />
