@@ -58,7 +58,7 @@ const FavCard: React.FC<{ product: Product; onPress: () => void }> = ({ product,
     <TouchableOpacity onPress={onPress}>
       <View style={styles.card}>
         <View style={styles.cardContent}>
-          <Image source={{ uri: product.image_url }} style={styles.productImage} />
+        <Image source={{ uri: product.image_url || 'https://via.placeholder.com/100' }} style={styles.productImage} />
           <View style={styles.infoContainer}>
             <Text style={styles.productTitle}>{product.product_name}</Text>
             <View style={styles.circleContainer}>
