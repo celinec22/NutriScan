@@ -130,7 +130,7 @@ const calculateScoreWithCategory = async (barcode: string): Promise<string> => {
                 case "sugars":  // Handling sugars
                     switch (nutrient.level) {
                         case 'low':
-                            score += 1;  // Low sugar is positive
+                            score += 3;  // Low sugar is positive
                             break;
                         case 'high':
                             score -= 2;  // High sugar is worse, subtract more points
