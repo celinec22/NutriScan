@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getFavoritesList } from '@/components/foodmodal'; // Import the getFavoritesList function
-import calculateScoreWithCategory from '@/components/NutriScore'; // Import the function to calculate the nutrient score
+import { getFavoritesList } from '@/components/foodmodal'; 
+import calculateScoreWithCategory from '@/components/NutriScore'; 
 import BarcodeModal from '@/components/foodmodal';
 
-// Updated Product interface to include a nutrient_grade property
 interface Product {
   product_name: string;
   image_url: string;
@@ -13,7 +12,7 @@ interface Product {
   nutrient_grade: string;
 }
 
-// Component for displaying each fav card
+// Component for displaying each product
 const FavCard: React.FC<{ product: Product; onPress: () => void }> = ({ product, onPress }) => {
   // State to hold the nutrient score of the product
   const [nutrientScore, setNutrientScore] = useState<string>('');
@@ -21,9 +20,8 @@ const FavCard: React.FC<{ product: Product; onPress: () => void }> = ({ product,
   // Function to calculate the nutrient score when the component mounts or when the product changes
   const calculateNutrientScore = async (product: Product) => {
     try {
-      // Call the function to calculate the nutrient score
+      // Call the function to calculate the nutrient score and set the nutrient score
       const score = await calculateScoreWithCategory(product.code);
-      // Set the nutrient score in the state
       setNutrientScore(score);
     } catch (error) {
       console.error('Error calculating nutrient score:', error);
@@ -76,6 +74,7 @@ const FavCard: React.FC<{ product: Product; onPress: () => void }> = ({ product,
 };
 
 const FavoritesScreen = () => {
+  //state variables
   const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -87,7 +86,7 @@ const FavoritesScreen = () => {
   }, []);
 
   const onRefresh = () => {
-    loadFavorites(); // Reload favorite products
+    loadFavorites(); // Reload favorite products to update list on screen
   };
 
   const loadFavorites = async () => {
@@ -155,12 +154,13 @@ const FavoritesScreen = () => {
       console.error('Error fetching product details:', error);
       setScannedData(null);
     }
-    setModalVisible(true); // Setting the modal visibility to true
+    setModalVisible(true); //make modal visible
   };
 
+  //make modal no longer visible
   const handleCloseModal = () => {
     setSelectedProduct(null);
-    setModalVisible(false); // Setting the modal visibility to false
+    setModalVisible(false); 
   };
 
   return (
