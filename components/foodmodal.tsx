@@ -10,20 +10,50 @@ interface Props {
 }
 
 
+function capitalize(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 const AccordionItem = ({ title, content }: { title: string; content: string }) => {
   const [expanded, setExpanded] = useState(false);
- 
- 
+
   return (
-    <View>
+    <View style={styles.accordionContainer}>
       <TouchableOpacity style={styles.accordionHeader} onPress={() => setExpanded(!expanded)}>
-        <Text style={styles.accordionTitle}>{title}</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.accordionTitle}>{capitalize(title)} </Text>
+
+        </View>
         <Ionicons name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'} size={20} color="#276749" />
       </TouchableOpacity>
-      {expanded && <Text style={styles.accordionContent}>{content}</Text>}
+      {expanded && (
+        <View style={styles.accordionContent}>
+                    <Text style={styles.accordionServing}>{content}</Text>
+          {/* Additional content if needed */}
+        </View>
+      )}
     </View>
   );
- };
+};
+
+const IngredientsSection = ({ ingredients }: { ingredients: string }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <View style={styles.accordionContainer}>
+      <TouchableOpacity style={styles.accordionHeader} onPress={() => setExpanded(!expanded)}>
+        <Text style={styles.accordionTitle}>Ingredients</Text>
+        <Ionicons name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'} size={20} color="#276749" />
+      </TouchableOpacity>
+      {expanded && (
+        <ScrollView style={styles.accordionContent}>
+          <Text style={styles.accordionServing}>{ingredients}</Text>
+        </ScrollView>
+      )}
+    </View>
+  );
+};
+
  
 
 
@@ -53,7 +83,7 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
     image: string;
     brand: string;
     ingredients: string;
-    additives: any[];
+    additives: string;
     nutrientData: Record<string, { serving: number; level: string }>;
   } | null>(null);
 
@@ -206,7 +236,7 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
         const catagory = categorizeScore(score);
         setCategory(catagory); // Set the category state variable
 
-        setProductData({ title, image, brand, ingredients: ingredientNames, additives: additiveDetails, nutrientData });
+        setProductData({ title, image, brand, ingredients: ingredientNames, additives: additiveNames, nutrientData });
       } else {
         setProductData(null);
       }
@@ -388,7 +418,9 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
       visible={visible}
       onRequestClose={onClose}
     >
+      
       <View style={styles.modalContainer}>
+    
         <View style={styles.modalContent}>
           {productData ? (
             <>
@@ -409,6 +441,16 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
               </View>
               <ScrollView>
               <ScrollView>
+              
+         
+          <View>
+      
+          <AccordionItem
+          title="Ingredients"
+            content={productData.ingredients}
+            />
+          </View>
+   
           <SectionHeader title="Positives" />
            <View>
            {positives.map((positive, index) => (
@@ -416,14 +458,16 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
                     key={`positive-${index}`}
                     title={positive}
                     content={positive.includes('energy-kcal') ?
-               `Per Calories: ${productData.nutrientData[positive].serving} kcal` :
-               `Per Serving: ${productData.nutrientData[positive].serving}g`}
-                 />
+                    `The FDA considers ${productData.nutrientData[positive].serving} cals per serving to be too high per set standards` :
+                    `The FDA considers ${productData.nutrientData[positive].serving} grams per serving to be too high per set standards`}
+                      />
                  
                 ))}
+                
+                 
           </View>
  
- 
+              
         <SectionHeader title="Negatives" />
         <View>
         {negatives.map((negative, index) => (
@@ -431,15 +475,25 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
                     key={`negative-${index}`}
                     title={negative}
                     content={negative.includes('energy-kcal') ?
-               `Per Serving: ${productData.nutrientData[negative].serving} cals` :
-               `Per Serving: ${productData.nutrientData[negative].serving}g`}
+               `The FDA considers ${productData.nutrientData[negative].serving} cals per serving to be too high per set standards` :
+               `The FDA considers ${productData.nutrientData[negative].serving} grams per serving to be too high per set standards`}
                  />
                 ))}
+
         </View>
+        <View>
+          <AccordionItem
+          title="Additives"
+            content={productData.additives}
+            />
+            
+          </View>
+         
       </ScrollView>
- 
+     
  
               </ScrollView>
+              
             </>
           ) : (
             <Text>Loading...</Text>
@@ -457,7 +511,9 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
           </TouchableOpacity>
         </View>
       </View>
+   
     </Modal>
+    
   );
  };
  
@@ -473,13 +529,14 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
     borderTopRightRadius: 20,
     padding: 20,
     alignItems: "center",
-    minHeight: 700,
+    maxHeight: 700,
   },
   topHalfContainer: {
     alignItems: "center",
     borderBottomWidth: 1,
     borderBottomColor: "#ccc",
     paddingBottom: 10,
+    minWidth: 350,
   },
   productTitle: {
     fontSize: 18,
@@ -506,13 +563,14 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
   sectionHeader: {
     fontWeight: 'bold',
     paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     fontSize: 18,
     color: '#2e78b7', // blue for section headers
   },
   accordionContainer: {
     flex: 1,
     padding: 10,
+   
   },
   accordionHeader: {
     flexDirection: 'row',
@@ -527,11 +585,14 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
   accordionTitle: {
     fontWeight: 'bold',
     color: 'black',
+    fontSize: 13, 
+    minWidth: 250,
   },
   accordionContent: {
     padding: 15,
     backgroundColor: '#f0f0f0', // Light background for content
     borderBottomWidth: 0, // Removing the bottom border from the content
+    
   },
   favoriteButton: {
     backgroundColor: "green",
@@ -555,6 +616,10 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
   closeButtonText: {
     color: "white",
     fontWeight: "bold",
+  },
+  accordionServing: {
+    marginRight: 10, // ensures spacing between the text and icon
+    color: 'black', // ensures the text is visible
   },
  });
  
