@@ -3,11 +3,10 @@ interface NutrientScoreColorMap {
   }
   
   const nutrientScoreColorMap: NutrientScoreColorMap = {
-    Excellent: '#5bb450',
-    Good: '#ffd700',
-    Average: '#ccc',
-    Poor: '#ff6347',
-    Bad: '#8b0000',
+    Good: '#44ce1b',
+    Average: '#bbdb44',
+    Poor: '#f2a134',
+    Bad: '#e51f1f',
   };
   
   export const getCircleColor = (nutrientScore: string): string => {
