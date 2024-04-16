@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getFavoritesList } from '@/components/foodmodal'; 
 import calculateScoreWithCategory from '@/components/NutriScore'; 
 import BarcodeModal from '@/components/foodmodal';
+import { getCircleColor } from './CircleColor'
 
 interface Product {
   product_name: string;
@@ -34,24 +35,6 @@ const FavCard: React.FC<{ product: Product; onPress: () => void }> = ({ product,
   useEffect(() => {
     calculateNutrientScore(product);
   }, [product]);
-
-  // Function to determine the color of the circle based on the nutrient score
-  const getCircleColor = (nutrientScore: string): string => {
-    switch (nutrientScore) {
-      case 'Excellent':
-        return '#5bb450'; // Green color for Excellent
-      case 'Good':
-        return '#ffd700'; // Yellow color for Good
-      case 'Average':
-        return '#ccc'; // Grey color for Average
-      case 'Poor':
-        return '#ff6347'; // Red color for Poor
-      case 'Bad':
-        return '#8b0000'; // Dark red color for Bad
-      default:
-        return '#ccc'; // Default to grey for unknown score
-    }
-  };
 
   // Return the UI for displaying a favorite product
   return (
