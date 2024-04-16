@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, ScrollView, Text, Button, TouchableOpacity, StyleSheet, Modal, Image } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Props {
   visible: boolean;
@@ -8,6 +9,30 @@ interface Props {
   onClose: () => void;
 }
 
+
+const AccordionItem = ({ title, content }: { title: string; content: string }) => {
+  const [expanded, setExpanded] = useState(false);
+ 
+ 
+  return (
+    <View>
+      <TouchableOpacity style={styles.accordionHeader} onPress={() => setExpanded(!expanded)}>
+        <Text style={styles.accordionTitle}>{title}</Text>
+        <Ionicons name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'} size={20} color="#276749" />
+      </TouchableOpacity>
+      {expanded && <Text style={styles.accordionContent}>{content}</Text>}
+    </View>
+  );
+ };
+ 
+
+
+const SectionHeader = ({ title }: { title: string }) => {
+  return (
+    <Text style={styles.sectionHeader}>{title}</Text>
+  );
+ };
+ 
 export const getFavoritesList = async (): Promise<string[] | null> => {
   try {
     const favs = await AsyncStorage.getItem('favsList');
@@ -35,6 +60,8 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
   const [category, setCategory] = useState<string>(''); // Declare category state variable
   const [isFavorite, setIsFavorite] = useState<boolean>(false); // State variable for favorite status
   const [favsList, setFavsList] = useState<string[]>([]); // State variable for favorites list
+  const [positives, setPositives] = useState<string[]>([]);
+  const [negatives, setNegatives] = useState<string[]>([]);
 
   useEffect(() => {
     if (scannedData) {
@@ -78,7 +105,7 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
       console.error('Error loading favorite status:', error);
     }
   };
-
+  
   const handleFavoriteToggle = async () => {
     const updatedFavsList = [...favsList];
     if (isFavorite) {
@@ -117,6 +144,9 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
       );
       const data = await response.json();
       if (data.product) {
+        const newPositives: string[] = [];
+        const newNegatives: string[] = [];
+ 
         const title = data.product.product_name || "Product Name Not Available";
         const image = data.product.image_url || "";
         const brand = data.product.brand_owner || "Brand Not Available";
@@ -138,6 +168,39 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
             nutrientData[nutrient] = { serving: nutrientValueServing, level };
           }
         });
+        Object.entries(nutrientData).forEach(([nutrient, { level }]) => {
+          // Check if the nutrient is 'proteins' and handle it separately
+          if (nutrient === 'proteins') {
+            switch (level) {
+              case 'low':
+                newNegatives.push(`${nutrient}`); // Consider low protein as negative
+                break;
+              case 'high':
+                newPositives.push(`${nutrient}`); // Consider high protein as positive
+                break;
+              default:
+                break; // Do nothing if the protein level is normal or unknown
+            }
+          } else {
+            // Handle all other nutrients
+            switch (level) {
+              case 'low':
+                newPositives.push(`${nutrient}`); // For other nutrients, low might be positive
+                break;
+              case 'high':
+                newNegatives.push(`${nutrient}`); // For other nutrients, high might be negative
+                break;
+              default:
+                break; // Do nothing if the level is normal or unknown
+            }
+          }
+        });
+      
+     
+        // Set state
+        setPositives(newPositives);
+        setNegatives(newNegatives);
+ 
 
         const score = calculateScore(nutrientData, additives);
         const catagory = categorizeScore(score);
@@ -345,15 +408,37 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
                 <Text style={styles.categoryText}>Category: {category}</Text>
               </View>
               <ScrollView>
-                {/* Positives Text */}
-                <Text style={styles.positivesText}>Positives</Text>
-                {/* Positives Container */}
-                <View style={styles.positivesContainer}></View>
-
-                {/* Negatives Text */}
-                <Text style={styles.negativesText}>Negatives</Text>
-                {/* Negatives Container */}
-                <View style={styles.negativesContainer}></View>
+              <ScrollView>
+          <SectionHeader title="Positives" />
+           <View>
+           {positives.map((positive, index) => (
+                  <AccordionItem
+                    key={`positive-${index}`}
+                    title={positive}
+                    content={positive.includes('energy-kcal') ?
+               `Per Calories: ${productData.nutrientData[positive].serving} kcal` :
+               `Per Serving: ${productData.nutrientData[positive].serving}g`}
+                 />
+                 
+                ))}
+          </View>
+ 
+ 
+        <SectionHeader title="Negatives" />
+        <View>
+        {negatives.map((negative, index) => (
+                  <AccordionItem
+                    key={`negative-${index}`}
+                    title={negative}
+                    content={negative.includes('energy-kcal') ?
+               `Per Serving: ${productData.nutrientData[negative].serving} cals` :
+               `Per Serving: ${productData.nutrientData[negative].serving}g`}
+                 />
+                ))}
+        </View>
+      </ScrollView>
+ 
+ 
               </ScrollView>
             </>
           ) : (
@@ -374,9 +459,10 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
       </View>
     </Modal>
   );
-};
-
-const styles = StyleSheet.create({
+ };
+ 
+ 
+ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     justifyContent: "flex-end",
@@ -408,42 +494,44 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     marginBottom: 10,
-    borderWidth: 2, 
-    borderColor: "green", 
-    borderRadius: 10, 
+    borderWidth: 2,
+    borderColor: "green",
+    borderRadius: 10,
   },
   categoryText: {
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 10,
   },
-  positivesText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 20,
-    marginBottom: 10,
+  sectionHeader: {
+    fontWeight: 'bold',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    fontSize: 18,
+    color: '#2e78b7', // blue for section headers
   },
-  positivesContainer: {
-    borderWidth: 1,
-    borderColor: "green",
+  accordionContainer: {
+    flex: 1,
     padding: 10,
-    minHeight: 100,
-    minWidth: 300,
-    marginBottom: 20,
   },
-  negativesText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 10,
-    marginBottom: 10,
+  accordionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 5, // reduced padding when closed
+    borderBottomWidth: 1,
+    borderColor: '#cccccc',
+    backgroundColor: 'white',
   },
-  negativesContainer: {
-    borderWidth: 1,
-    borderColor: "red",
-    padding: 10,
-    minHeight: 100,
-    minWidth: 300,
-    marginBottom: 20,
+  accordionTitle: {
+    fontWeight: 'bold',
+    color: 'black',
+  },
+  accordionContent: {
+    padding: 15,
+    backgroundColor: '#f0f0f0', // Light background for content
+    borderBottomWidth: 0, // Removing the bottom border from the content
   },
   favoriteButton: {
     backgroundColor: "green",
@@ -452,7 +540,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   favoriteButtonActive: {
-    backgroundColor: "#ccc", // Change the color when active
+    backgroundColor: "#ccc",
   },
   favoriteButtonText: {
     color: "white",
@@ -468,6 +556,10 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
   },
-});
+ });
+ 
+ 
+ export default BarcodeModal;
+ 
+ 
 
-export default BarcodeModal;
