@@ -84,7 +84,8 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
     brand: string;
     ingredients: string;
     additives: string;
-    nutrientData: Record<string, { serving: number; level: string }>;
+    nutrientData: Record<string, { serving: number; level: string ; hungredgram: number;}>;
+    
   } | null>(null);
 
   const [category, setCategory] = useState<string>(''); // Declare category state variable
@@ -182,7 +183,9 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
         const brand = data.product.brand_owner || "Brand Not Available";
         const ingredients = data.product.ingredients || [];
         const additives = data.product.additives_tags || [];
-        const nutrientData: Record<string, { serving: number; level: string }> = {};
+
+        const nutrientData: Record<string, { serving: number; level: string; hungredgram: number }> = {};
+
 
         const additiveDetails = await fetchAdditiveDetails(additives);
 
@@ -190,12 +193,14 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
         const additiveNames = additiveDetails.map((additive: any) => additive.name).join(", ");
 
         Object.keys(nutrientThresholds).forEach(nutrient => {
-          const nutrientValueGrams = (data.product.nutriments[`${nutrient}_100g`] || "unknown")
-          const nutrientValueServing = (data.product.nutriments[`${nutrient}_serving`] || "unknown")
+          const nutrientValueGrams = (data.product.nutriments[`${nutrient}_100g`] || 0)
+          const nutrientValueServing = (data.product.nutriments[`${nutrient}_serving`] || 0)
           
           if (nutrientValueGrams !== "unknown" || nutrientValueServing !== "unknown") {
+
             const level = calculateNutrientLevel(nutrient, nutrientValueGrams);
-            nutrientData[nutrient] = { serving: nutrientValueServing, level };
+            nutrientData[nutrient] = { serving: nutrientValueServing, level, hungredgram: nutrientValueGrams  };
+
           }
         });
         Object.entries(nutrientData).forEach(([nutrient, { level }]) => {
@@ -236,7 +241,7 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
         const catagory = categorizeScore(score);
         setCategory(catagory); // Set the category state variable
 
-        setProductData({ title, image, brand, ingredients: ingredientNames, additives: additiveNames, nutrientData });
+        setProductData({ title, image, brand, ingredients: ingredientNames, additives: additiveNames, nutrientData: nutrientData });
       } else {
         setProductData(null);
       }
@@ -345,7 +350,7 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
         case "sugars":  // Handling sugars
           switch (nutrient.level) {
             case 'low':
-              score += 1;
+              score += 3;
               break;
             case 'high':
               score -= 2;
@@ -398,9 +403,9 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
   };
 
   const categorizeScore = (score: number): string => {
-    if (score >= 10) {
+    if (score >= 5) {
       return 'Excellent';
-    } else if (score >= 5) {
+    } else if (score >= 3) {
       return 'Good';
     } else if (score >= 0) {
       return 'Average';
@@ -447,7 +452,10 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
       
           <AccordionItem
           title="Ingredients"
-            content={productData.ingredients}
+          
+            content={productData.ingredients.length==0?
+              "No Ingredients Avaliable" :
+              productData.ingredients}
             />
           </View>
    
@@ -456,12 +464,19 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
            {positives.map((positive, index) => (
                   <AccordionItem
                     key={`positive-${index}`}
-                    title={positive}
-                    content={positive.includes('energy-kcal') ?
-                    `The FDA considers ${productData.nutrientData[positive].serving} cals per serving to be too high per set standards` :
-                    `The FDA considers ${productData.nutrientData[positive].serving} grams per serving to be too high per set standards`}
+                    title={`${positive}${productData.nutrientData[positive].serving ? ` - Serving: ${productData.nutrientData[positive].serving}${
+                      positive.includes('energy-kcal') ? " cals" : "g"
+                    }` : '-Serving: Unavailable'}`}
+                    content={!productData.nutrientData[positive].hungredgram || productData.nutrientData[positive].hungredgram === 0 ?
+                      "Information per 100g unavailable" :
+                      positive.includes('energy-kcal') ?
+                    
+                    `The National Health Service considers ${productData.nutrientData[positive].hungredgram.toFixed(2)} cals per 100g to be low` :
+                    positive.includes('protein') ?
+                    `The National Health Service considers ${productData.nutrientData[positive].hungredgram} grams per 100g to be high`:
+                    `The National Health Service considers ${productData.nutrientData[positive].hungredgram.toFixed(2)} cals per 100g to be low` }
                       />
-                 
+                    
                 ))}
                 
                  
@@ -471,20 +486,32 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
         <SectionHeader title="Negatives" />
         <View>
         {negatives.map((negative, index) => (
-                  <AccordionItem
-                    key={`negative-${index}`}
-                    title={negative}
-                    content={negative.includes('energy-kcal') ?
-               `The FDA considers ${productData.nutrientData[negative].serving} cals per serving to be too high per set standards` :
-               `The FDA considers ${productData.nutrientData[negative].serving} grams per serving to be too high per set standards`}
-                 />
+                   <AccordionItem
+                   key={`negative-${index}`}
+                   title={`${negative}${productData.nutrientData[negative].serving ? ` - Serving: ${productData.nutrientData[negative].serving}${
+    negative.includes('energy-kcal') ? " cals" : "g"
+  }` : '-Serving: Unavailable'}`}
+                   content = {
+                    !productData.nutrientData[negative].hungredgram || productData.nutrientData[negative].hungredgram === 0 ?
+                    "Serving information unavailable" :
+                    negative.includes('energy-kcal') ?
+                        `The National Health Service considers ${productData.nutrientData[negative].hungredgram.toFixed(2)} cals per 100g to be too high` :
+                    negative.includes('protein') ?
+                        `The National Health Service considers ${productData.nutrientData[negative].hungredgram.toFixed(2)} grams per 100g to be low` :
+                        `The National Health Service considers ${productData.nutrientData[negative].hungredgram.toFixed(2)} grams per 100g to be too high`
+                }
+               />
                 ))}
 
         </View>
         <View>
+        <SectionHeader title="Additives" />
           <AccordionItem
-          title="Additives"
-            content={productData.additives}
+          title="Additives List"
+          
+            content={productData.additives.length==0?
+              "No Additves Provided" :
+              productData.additives}
             />
             
           </View>
