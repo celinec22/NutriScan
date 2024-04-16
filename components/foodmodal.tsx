@@ -2,13 +2,13 @@ import React, { useState, useEffect } from "react";
 import { View, ScrollView, Text, Button, TouchableOpacity, StyleSheet, Modal, Image } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { getCircleColor } from "@/app/(tabs)/CircleColor";
 
 interface Props {
   visible: boolean;
   scannedData: { type: string; data: string } | null;
   onClose: () => void;
 }
-
 
 function capitalize(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1);
@@ -53,9 +53,6 @@ const IngredientsSection = ({ ingredients }: { ingredients: string }) => {
     </View>
   );
 };
-
- 
-
 
 const SectionHeader = ({ title }: { title: string }) => {
   return (
@@ -442,7 +439,10 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
                   <Text>No Image Available</Text>
                 )}
                 {/* Category Text */}
-                <Text style={styles.categoryText}>Category: {category}</Text>
+                <View style={styles.circleContainer}>
+  <View style={[styles.circle, { backgroundColor: getCircleColor(category) }]} />
+  <Text style={styles.categoryText}>{category}</Text>
+</View>
               </View>
               <ScrollView>
               <ScrollView>
@@ -575,8 +575,8 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
     marginBottom: 10,
   },
   productImage: {
-    width: 150,
-    height: 150,
+    width: 125,
+    height: 125,
     marginBottom: 10,
     borderWidth: 2,
     borderColor: "green",
@@ -643,6 +643,17 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
   closeButtonText: {
     color: "white",
     fontWeight: "bold",
+  },
+  circle: {
+    width: 15,
+    height: 15,
+    borderRadius: 10,
+  },
+  circleContainer: {
+    paddingLeft: 10,
+    paddingTop: 10,
+    flexDirection: 'row',
+    gap: 10,
   },
   accordionServing: {
     marginRight: 10, // ensures spacing between the text and icon

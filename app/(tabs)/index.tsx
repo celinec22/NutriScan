@@ -3,6 +3,7 @@ import { StyleSheet, TextInput, View, ScrollView, Image, useColorScheme, Touchab
 import { Ionicons } from '@expo/vector-icons';
 import calculateScoreWithCategory from '@/components/NutriScore'; // Importing a function to calculate the nutrient score
 import BarcodeModal from '@/components/foodmodal'; // Importing a modal component
+import { getCircleColor } from './CircleColor'
 
 // Defining the structure of a product
 interface Product {
@@ -36,24 +37,6 @@ const SearchResultCard: React.FC<{ product: Product; onPress: () => void }> = ({
     calculateNutrientScore(product);
   }, [product]);
 
-  // Function to determine the color of the circle based on the nutrient score
-  const getCircleColor = (nutrientScore: string): string => {
-    switch (nutrientScore) {
-      case 'Excellent':
-        return '#5bb450'; // Green color for Excellent
-      case 'Good':
-        return '#ffd700'; // Yellow color for Good
-      case 'Average':
-        return '#ccc'; // Grey color for Average
-      case 'Poor':
-        return '#ff6347'; // Red color for Poor
-      case 'Bad':
-        return '#8b0000'; // Dark red color for Bad
-      default:
-        return '#ccc'; // Default to grey for unknown score
-    }
-  };
-
   // Return the UI for displaying a search result
   return (
     <TouchableOpacity onPress={onPress}>
@@ -85,56 +68,58 @@ const SearchScreen = () => {
   const colorScheme = useColorScheme(); // Hook to get the color scheme of the device
 
   // Function to handle the search query
-  // Function to handle the search query
-const handleSearch = async (text: string) => {
-  const sanitizedText = encodeURIComponent(text.trim()); // Trim and encode the search query
-
-  setSearchQuery(text);
-  if (sanitizedText.length > 0) {
-    try {
-      // Fetching search results from an API based on the sanitized search query
-      const response = await fetch(
-        `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${sanitizedText}&page_size=10&json=true`
-      );
-      if (!response.ok) {
-        throw new Error('Failed to fetch data');
-      }
-      const data = await response.json();
-      
-      // Mapping over the fetched products and fetching additional data for each product
-      const fetchedResults = await Promise.all(data.products.map(async (product: Product) => {
-        try {
-          // Fetch additional details of each product
-          const productResponse = await fetch(`https://world.openfoodfacts.org/api/v0/product/${product.code}.json`);
-          if (!productResponse.ok) {
-            throw new Error('Failed to fetch product details');
-          }
-          const productData = await productResponse.json();
-          // Extracting nutrient grade from the additional data
-          const nutrient_grade = productData.product.nutrition_grades || 'Unknown';
-          // Returning the product with nutrient grade
-          return { ...product, nutrient_grade };
-        } catch (error) {
-          console.error(`Error fetching additional details for product ${product.code}:`, error);
-          return { ...product, nutrient_grade: 'Unknown' };
+  const handleSearch = async (text: string) => {
+    const sanitizedText = encodeURIComponent(text.trim()); // Trim and encode the search query
+  
+    setSearchQuery(text);
+    if (sanitizedText.length > 0) {
+      try {
+        // Fetching search results from an API based on the sanitized search query
+        const response = await fetch(
+          `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${sanitizedText}&page_size=10&json=true`
+        );
+        if (!response.ok) {
+          throw new Error('Failed to fetch data');
         }
-      }));
-      
-      // Filtering search results based on the product name containing the search query
-      const filteredResults = fetchedResults.filter((product: Product) =>
-        product.product_name.toLowerCase().includes(text.toLowerCase())
-      );
-      
-      // Updating the search results state
-      setSearchResults(filteredResults);
-    } catch (error) {
-      console.error('Error fetching search results:', error);
+        const data = await response.json();
+  
+        // Mapping over the fetched products and fetching additional data for each product
+        const fetchedResults = await Promise.all(data.products.map(async (product: Product) => {
+          try {
+            // Check if product_name exists before accessing it
+            const productName = product.product_name || 'Unknown';
+            
+            // Fetch additional details of each product
+            const productResponse = await fetch(`https://world.openfoodfacts.org/api/v0/product/${product.code}.json`);
+            if (!productResponse.ok) {
+              throw new Error('Failed to fetch product details');
+            }
+            const productData = await productResponse.json();
+            // Extracting nutrient grade from the additional data
+            const nutrient_grade = productData.product.nutrition_grades || 'Unknown';
+            // Returning the product with nutrient grade
+            return { ...product, nutrient_grade, product_name: productName };
+          } catch (error) {
+            console.error(`Error fetching additional details for product ${product.code}:`, error);
+            return { ...product, nutrient_grade: 'Unknown', product_name: 'Unknown' };
+          }
+        }));
+  
+        // Filtering search results based on the product name containing the search query
+        const filteredResults = fetchedResults.filter((product: Product) =>
+          product.product_name.toLowerCase().includes(text.toLowerCase())
+        );
+  
+        // Updating the search results state
+        setSearchResults(filteredResults);
+      } catch (error) {
+        console.error('Error fetching search results:', error);
+        setSearchResults([]);
+      }
+    } else {
       setSearchResults([]);
     }
-  } else {
-    setSearchResults([]);
-  }
-};
+  };
 
   // Function to handle opening the modal for a selected product
   const handleOpenModal = async (product: Product) => {

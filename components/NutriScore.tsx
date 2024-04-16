@@ -180,13 +180,12 @@ const calculateScoreWithCategory = async (barcode: string): Promise<string> => {
         });
 
         // Categorize the score
-        if (score >= 10) {
-            return 'Excellent';
-        } else if (score >= 5) {
+      
+        if (score >= 3) {
             return 'Good';
         } else if (score >= 0) {
             return 'Average';
-        } else if (score >= -5) {
+        } else if (score >= -3) {
             return 'Poor';
         } else {
             return 'Bad';
