@@ -529,7 +529,7 @@ const BarcodeModal: React.FC<Props> = ({ visible, scannedData, onClose }) => {
     borderTopRightRadius: 20,
     padding: 20,
     alignItems: "center",
-    minHeight: 700,
+    maxHeight: 700,
   },
   topHalfContainer: {
     alignItems: "center",
