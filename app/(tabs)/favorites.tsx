@@ -3,6 +3,7 @@ import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, RefreshCon
 import { Ionicons } from '@expo/vector-icons';
 import { getFavoritesList } from '@/components/foodmodal'; // Import the getFavoritesList function
 import calculateScoreWithCategory from '@/components/NutriScore'; // Import the function to calculate the nutrient score
+import BarcodeModal from '@/components/foodmodal';
 
 // Updated Product interface to include a nutrient_grade property
 interface Product {
@@ -12,8 +13,30 @@ interface Product {
   nutrient_grade: string;
 }
 
-// Component for displaying each favorite product
-const ProductInterface: React.FC<{ product: Product; nutrientScore: string; onPress: () => void }> = ({ product, nutrientScore, onPress }) => {
+// Component for displaying each fav card
+const FavCard: React.FC<{ product: Product; onPress: () => void }> = ({ product, onPress }) => {
+  // State to hold the nutrient score of the product
+  const [nutrientScore, setNutrientScore] = useState<string>('');
+
+  // Function to calculate the nutrient score when the component mounts or when the product changes
+  const calculateNutrientScore = async (product: Product) => {
+    try {
+      // Call the function to calculate the nutrient score
+      const score = await calculateScoreWithCategory(product.code);
+      // Set the nutrient score in the state
+      setNutrientScore(score);
+    } catch (error) {
+      console.error('Error calculating nutrient score:', error);
+      // Set the nutrient score to 'Unknown' in case of an error
+      setNutrientScore('Unknown');
+    }
+  };
+
+  // Effect to trigger the calculation of the nutrient score when the component mounts or when the product changes
+  useEffect(() => {
+    calculateNutrientScore(product);
+  }, [product]);
+
   // Function to determine the color of the circle based on the nutrient score
   const getCircleColor = (nutrientScore: string): string => {
     switch (nutrientScore) {
@@ -55,10 +78,17 @@ const ProductInterface: React.FC<{ product: Product; nutrientScore: string; onPr
 const FavoritesScreen = () => {
   const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [scannedData, setScannedData] = useState<{ type: string; data: string } | null>(null);
 
   useEffect(() => {
     loadFavorites(); // Load favorites when the component mounts
   }, []);
+
+  const onRefresh = () => {
+    loadFavorites(); // Reload favorite products
+  };
 
   const loadFavorites = async () => {
     try {
@@ -109,9 +139,28 @@ const FavoritesScreen = () => {
     }
   };
 
-  const handleOpenModal = (product: Product) => {
-    // Open modal for the selected product
-    console.log('Open modal for product:', product);
+  const handleOpenModal = async (product: Product) => {
+    setSelectedProduct(product);
+    try {
+      // Fetching additional details of the selected product from an API
+      const response = await fetch(
+        `https://world.openfoodfacts.org/api/v0/product/${product.code}.json`
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch product details');
+      }
+      const data = await response.json();
+      setScannedData({ type: 'barcode', data: product.code });
+    } catch (error) {
+      console.error('Error fetching product details:', error);
+      setScannedData(null);
+    }
+    setModalVisible(true); // Setting the modal visibility to true
+  };
+
+  const handleCloseModal = () => {
+    setSelectedProduct(null);
+    setModalVisible(false); // Setting the modal visibility to false
   };
 
   return (
@@ -119,17 +168,25 @@ const FavoritesScreen = () => {
       <Text style={styles.header}>Favorites</Text>
       <ScrollView
         style={styles.resultsContainer}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadFavorites} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         {favoriteProducts.map((product, index) => (
-          <ProductInterface
+          <FavCard
             key={index}
             product={product}
-            nutrientScore={product.nutrient_grade}
             onPress={() => handleOpenModal(product)}
           />
         ))}
       </ScrollView>
+      {selectedProduct && modalVisible && (
+        <BarcodeModal 
+          visible={modalVisible}
+          scannedData={scannedData}
+          onClose={handleCloseModal}
+        />
+      )}
     </View>
   );
 };
